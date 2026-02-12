@@ -11,12 +11,9 @@ const createMockDb = () => {
       from: () => ({
         where: (condition: any) => ({
           limit: () => {
-            // Mock select with where clause
-            const results = Array.from(storage.values()).filter((item) => {
-              // Simple mock - in real test we'd need better condition parsing
-              return true;
-            });
-            return results;
+            // Return empty array to simulate no existing URLs
+            // This allows new short URLs to always be created
+            return [];
           },
         }),
       }),
@@ -122,6 +119,36 @@ describe('UrlShortenerService', () => {
       expect(result1.shortUrl.analyticsToken).not.toBe(result2.shortUrl.analyticsToken);
     });
 
+    it('should create new short URL for duplicate original URL (FR-006)', async () => {
+      const db = createMockDb();
+      const originalUrl = 'https://example.com/same-url';
+
+      // Create first short URL
+      const result1 = await UrlShortenerService.createShortUrl({
+        originalUrl,
+        db,
+      });
+
+      // Create second short URL with same original URL
+      const result2 = await UrlShortenerService.createShortUrl({
+        originalUrl,
+        db,
+      });
+
+      // Both should be new URLs
+      expect(result1.isNewUrl).toBe(true);
+      expect(result2.isNewUrl).toBe(true);
+
+      // Should have different slugs
+      expect(result1.shortUrl.slug).not.toBe(result2.shortUrl.slug);
+
+      // Should have different analytics tokens (separate tracking)
+      expect(result1.shortUrl.analyticsToken).not.toBe(result2.shortUrl.analyticsToken);
+
+      // Both should have same original URL
+      expect(result1.shortUrl.originalUrl).toBe(result2.shortUrl.originalUrl);
+    });
+
     it('should handle URLs with query parameters', async () => {
       const result = await UrlShortenerService.createShortUrl({
         originalUrl: 'https://example.com?foo=bar&baz=qux',
@@ -175,16 +202,20 @@ describe('UrlShortenerService', () => {
 
   describe('collision handling', () => {
     it('should retry with longer slug on collision', async () => {
-      // Create a mock DB that simulates a collision on first attempt
+      let callCount = 0;
       const mockDbWithCollision = {
         select: () => ({
           from: () => ({
             where: () => ({
-              limit: vi
-                .fn()
-                .mockResolvedValueOnce([{ slug: 'abc123' }]) // First check: collision
-                .mockResolvedValueOnce([]) // Second check: no collision
-                .mockResolvedValue([]), // Subsequent checks
+              limit: () => {
+                callCount++;
+                // First call: collision detected
+                if (callCount === 1) {
+                  return Promise.resolve([{ slug: 'exists' }]);
+                }
+                // Second call: no collision
+                return Promise.resolve([]);
+              },
             }),
           }),
         }),
@@ -202,28 +233,22 @@ describe('UrlShortenerService', () => {
 
       expect(result.shortUrl.slug).toBeDefined();
       expect(result.shortUrl.slug.length).toBeGreaterThanOrEqual(6);
+      expect(callCount).toBeGreaterThan(1); // Should have retried
     });
 
     it('should throw error after max retries', async () => {
-      // Create a mock DB that always returns collisions
-      let selectCallCount = 0;
       const mockDbWithCollisions = {
         select: () => ({
           from: () => ({
             where: () => ({
               limit: () => {
-                selectCallCount++;
-                // First call is for checking existing URL (return empty)
-                if (selectCallCount === 1) {
-                  return Promise.resolve([]);
-                }
-                // All subsequent calls are slug collision checks (return collision)
+                // Always return collision
                 return Promise.resolve([{ slug: 'collision' }]);
               },
             }),
           }),
         }),
-        insert: () => ({
+        insert: (table: any) => ({
           values: () => ({
             returning: () => [],
           }),
@@ -239,46 +264,37 @@ describe('UrlShortenerService', () => {
     });
 
     it('should increment slug length on each retry', async () => {
-      let selectCallCount = 0;
-      const slugLengths: number[] = [];
-
+      let callCount = 0;
       const mockDbTrackingLength = {
         select: () => ({
           from: () => ({
-            where: (condition: any) => ({
+            where: () => ({
               limit: () => {
-                selectCallCount++;
-                // First call: check existing URL (empty)
-                if (selectCallCount === 1) {
-                  return Promise.resolve([]);
+                callCount++;
+                // First 2 calls: collisions
+                if (callCount <= 2) {
+                  return Promise.resolve([{ slug: 'exists' }]);
                 }
-                // Calls 2-3: slug collisions (return collision)
-                if (selectCallCount <= 3) {
-                  return Promise.resolve([{ slug: 'collision' }]);
-                }
-                // Call 4: no collision
+                // Third call: success
                 return Promise.resolve([]);
               },
             }),
           }),
         }),
         insert: (table: any) => ({
-          values: (data: any) => {
-            slugLengths.push(data.slug.length);
-            return {
-              returning: () => [{ ...data, id: 1 }],
-            };
-          },
+          values: (data: any) => ({
+            returning: () => [{ ...data, id: 1 }],
+          }),
         }),
       };
 
-      await UrlShortenerService.createShortUrl({
+      const result = await UrlShortenerService.createShortUrl({
         originalUrl: 'https://example.com',
         db: mockDbTrackingLength,
       });
 
-      // Should have incremented length on retry
-      expect(selectCallCount).toBeGreaterThan(2); // At least 1 URL check + 2 slug checks
+      expect(callCount).toBeGreaterThan(2); // Should have tried multiple times
+      expect(result.shortUrl.slug).toBeDefined();
     });
   });
 

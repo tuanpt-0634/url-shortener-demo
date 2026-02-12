@@ -272,10 +272,11 @@ describe('POST /api/shorten', () => {
       const request = createMockRequest({ url: 'https://example.com' });
       await POST(request);
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Error creating short URL:',
-        expect.any(Error)
-      );
+      // Logger now outputs JSON format, not the old console.error format
+      expect(consoleSpy).toHaveBeenCalled();
+      const loggedMessage = consoleSpy.mock.calls[0][0];
+      expect(loggedMessage).toContain('Error creating short URL');
+      expect(loggedMessage).toContain('Test error');
 
       consoleSpy.mockRestore();
     });

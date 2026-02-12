@@ -24,7 +24,8 @@ const INITIAL_SLUG_LENGTH = 6;
  */
 export class UrlShortenerService {
   /**
-   * Creates a new short URL or returns existing one for the same original URL
+   * Creates a new short URL with unique slug and analytics token
+   * Per FR-006: Always creates new short URL even if same original URL submitted
    * Implements collision retry logic: max 3 retries, incrementing length by 1
    */
   static async createShortUrl({
@@ -37,19 +38,8 @@ export class UrlShortenerService {
       throw new Error('Invalid URL format. Please provide a valid HTTP or HTTPS URL.');
     }
 
-    // Check if URL already exists
-    const existing = await db
-      .select()
-      .from(shortUrls)
-      .where(eq(shortUrls.originalUrl, normalizedUrl))
-      .limit(1);
-
-    if (existing && existing.length > 0) {
-      return {
-        shortUrl: existing[0],
-        isNewUrl: false,
-      };
-    }
+    // FR-006: Always create new short URL, even for duplicate original URLs
+    // This allows separate analytics tracking per submission
 
     // Generate unique slug with collision retry
     let slug: string | null = null;
