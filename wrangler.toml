@@ -1,20 +1,33 @@
-name = "url-shortener"
-compatibility_date = "2024-01-01"
-pages_build_output_dir = ".open-next/worker-cloudflare"
+name = "url-shortener-demo"
+compatibility_date = "2026-02-12"
+compatibility_flags = [ "nodejs_compat" ]
+
+# Workers deployment configuration
+main = ".open-next/worker.js"
+
+# Static assets configuration
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
 
 # D1 Database binding
 [[d1_databases]]
 binding = "DB"
 database_name = "url-shortener-db"
-database_id = "" # Add your D1 database ID here after creation
+database_id = "5a5ad0db-b633-4ae5-befa-12ad0c0b43ab"
+migrations_dir = "src/lib/db/migrations"
 
 # Environment variables
 [vars]
 NODE_ENV = "production"
+BASE_URL = "https://url-shortener-demo.workers.dev"
+CORS_ORIGIN = "https://url-shortener-demo.workers.dev"
+MAX_REQUESTS_PER_WINDOW = "60"
 
 # Development configuration
-[env.development]
-[[env.development.d1_databases]]
+[env.preview]
+[[env.preview.d1_databases]]
 binding = "DB"
 database_name = "url-shortener-db-dev"
-database_id = "" # Add your development D1 database ID here
+database_id = "" # Add your preview D1 database ID here
+migrations_dir = "src/lib/db/migrations"

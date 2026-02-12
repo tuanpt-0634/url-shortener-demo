@@ -44,13 +44,10 @@ npm install
 
 ### 2. Environment Configuration
 
-Create a `.env.local` file in the project root:
+Create a `.env.local` file, referencing `.env.example` for required variables:
 
 ```bash
-# .env.local
-DATABASE_URL="file:./local.db"
-GOOGLE_SAFE_BROWSING_API_KEY="your-api-key-here"
-NEXT_PUBLIC_BASE_URL="http://localhost:3000"
+cp .env.example .env.local
 ```
 
 **Getting Google Safe Browsing API Key**:

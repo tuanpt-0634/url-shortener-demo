@@ -1,0 +1,44 @@
+# Cloudflare Pages Configuration
+# https://developers.cloudflare.com/pages/configuration/build-configuration/
+
+# Build configuration
+build:
+  command: npm run build
+  destination: .open-next/worker-cloudflare
+  root_dir: /
+
+# Environment variables for build
+build_environment_variables:
+  NODE_VERSION: "20"
+  NPM_VERSION: "10"
+
+# Preview deployments
+preview:
+  branch_preview_path_includes:
+    - "*"
+  branch_deploy_control:
+    include:
+      - "main"
+      - "develop"
+      - "staging"
+    exclude:
+      - "dependabot/**"
+
+# Production branch
+production_branch: main
+
+# Deployment settings
+deployment_configs:
+  production:
+    environment_variables:
+      NODE_ENV: "production"
+      BASE_URL: "https://url-shortener-demo.pages.dev"
+      CORS_ORIGIN: "https://url-shortener-demo.pages.dev"
+      MAX_REQUESTS_PER_WINDOW: "60"
+    compatibility_date: "2024-01-01"
+    compatibility_flags: []
+  preview:
+    environment_variables:
+      NODE_ENV: "preview"
+    compatibility_date: "2024-01-01"
+    compatibility_flags: []
