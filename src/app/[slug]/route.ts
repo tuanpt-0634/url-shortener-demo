@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db/client';
 import { UrlShortenerService } from '@/lib/services/url-shortener';
 import { AnalyticsService } from '@/lib/services/analytics';
-import { detectDeviceType } from '@/lib/utils/device-detector';
+import { parseUserAgent } from '@/lib/utils/device-detector';
 
 export async function GET(
   request: NextRequest,
@@ -34,8 +34,8 @@ export async function GET(
   // Extract request metadata for analytics
   const referrer = request.headers.get('referer') || null;
   const userAgent = request.headers.get('user-agent') || null;
-  const deviceType = detectDeviceType(userAgent);
-  const ipAddress = request.headers.get('x-forwarded-for') || 
+  const { deviceType, browser, os } = parseUserAgent(userAgent);
+  const ipAddress = request.headers.get('x-forwarded-for') ||
                     request.headers.get('x-real-ip') || null;
 
   // Record analytics in background (fire-and-forget for performance)
@@ -46,6 +46,8 @@ export async function GET(
       referrer,
       userAgent,
       deviceType,
+      browser,
+      os,
       ipAddress,
     },
     db

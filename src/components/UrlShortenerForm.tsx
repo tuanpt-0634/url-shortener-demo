@@ -69,14 +69,13 @@ export default function UrlShortenerForm() {
       <Card className="mb-6">
         <form onSubmit={handleSubmit} className="space-y-5">
           <Input
-            type="url"
+            type="text"
             label="Enter your long URL"
             placeholder="https://example.com/very/long/url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={loading}
             aria-label="URL to shorten"
-            required
           />
 
           <Button type="submit" disabled={loading} className="w-full text-lg py-4">
