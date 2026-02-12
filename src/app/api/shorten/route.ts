@@ -3,6 +3,9 @@ import { getDb } from '@/lib/db/client';
 import { UrlShortenerService } from '@/lib/services/url-shortener';
 import { SecurityService } from '@/lib/services/security';
 import type { CreateShortUrlRequest, CreateShortUrlResponse, ErrorResponse } from '@/lib/types';
+import { createRouteLogger } from '@/lib/utils/logger';
+
+const logger = createRouteLogger('/api/shorten');
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +25,10 @@ export async function POST(request: NextRequest) {
     try {
       await SecurityService.validateUrlSafety(body.url);
     } catch (error) {
+      logger.warn('Malicious URL detected', {
+        url: body.url,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       const errorResponse: ErrorResponse = {
         error: 'Malicious URL detected',
         message:
@@ -54,7 +61,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
-    console.error('Error creating short URL:', error);
+    logger.error('Error creating short URL', error instanceof Error ? error : undefined, {
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    });
 
     // Handle validation errors
     if (error instanceof Error && error.message.includes('Invalid URL')) {

@@ -3,6 +3,9 @@ import { getDb } from '@/lib/db/client';
 import { UrlShortenerService } from '@/lib/services/url-shortener';
 import { AnalyticsService } from '@/lib/services/analytics';
 import { parseUserAgent } from '@/lib/utils/device-detector';
+import { createRouteLogger } from '@/lib/utils/logger';
+
+const logger = createRouteLogger('/[slug]');
 
 export async function GET(
   request: NextRequest,
@@ -31,6 +34,11 @@ export async function GET(
     );
   }
 
+  logger.info('Redirecting to original URL', {
+    slug,
+    originalUrl: shortUrl.originalUrl.substring(0, 100),
+  });
+
   // Extract request metadata for analytics
   const referrer = request.headers.get('referer') || null;
   const userAgent = request.headers.get('user-agent') || null;
@@ -53,7 +61,10 @@ export async function GET(
     db
   ).catch((error) => {
     // Log but don't fail the redirect
-    console.error('Analytics tracking failed:', error);
+    logger.error('Analytics tracking failed', error instanceof Error ? error : undefined, {
+      slug,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    });
   });
 
   // Redirect immediately (HTTP 302 for temporary redirect)

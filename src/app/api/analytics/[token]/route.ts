@@ -6,6 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db/client';
 import { AnalyticsService } from '@/lib/services/analytics';
+import { createRouteLogger } from '@/lib/utils/logger';
+
+const logger = createRouteLogger('/api/analytics/:token');
 
 export async function GET(
   request: NextRequest,
@@ -100,7 +103,9 @@ export async function GET(
       osBreakdown,
     });
   } catch (error) {
-    console.error('Analytics API error:', error);
+    logger.error('Analytics API error', error instanceof Error ? error : undefined, {
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    });
     return NextResponse.json(
       { error: 'Failed to fetch analytics data' },
       { status: 500 }
