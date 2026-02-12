@@ -66,42 +66,61 @@ export default function UrlShortenerForm() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          type="url"
-          label="Enter your long URL"
-          placeholder="https://example.com/very/long/url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          disabled={loading}
-          aria-label="URL to shorten"
-          required
-        />
+      <Card className="mb-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <Input
+            type="url"
+            label="Enter your long URL"
+            placeholder="https://example.com/very/long/url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            disabled={loading}
+            aria-label="URL to shorten"
+            required
+          />
 
-        <Button type="submit" disabled={loading} className="w-full">
-          {loading ? 'Creating...' : 'Shorten URL'}
-        </Button>
-      </form>
+          <Button type="submit" disabled={loading} className="w-full text-lg py-4">
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Creating...
+              </span>
+            ) : (
+              'Shorten URL'
+            )}
+          </Button>
+        </form>
+      </Card>
 
       {error && (
-        <Alert type="error" className="mt-4">
+        <Alert type="error" className="mb-6">
           <strong>Error:</strong> {error}
         </Alert>
       )}
 
       {result && (
-        <Card className="mt-6">
-          <h3 className="text-lg font-semibold mb-4">Success! Your short URL is ready</h3>
+        <Card>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-teal-900">Your short URL is ready!</h3>
+          </div>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Short URL</label>
+              <label className="block text-sm font-semibold text-teal-900 mb-2">Short URL</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   readOnly
                   value={result.shortUrl}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md bg-gray-50"
+                  className="flex-1 px-4 py-3 border border-teal-200 rounded-lg bg-teal-50 text-teal-900 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500"
                   aria-label="Short URL"
                 />
                 <Button
@@ -115,18 +134,18 @@ export default function UrlShortenerForm() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Original URL</label>
+              <label className="block text-sm font-semibold text-teal-900 mb-2">Original URL</label>
               <input
                 type="text"
                 readOnly
                 value={result.originalUrl}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-700 focus:outline-none"
                 aria-label="Original URL"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-teal-900 mb-2">
                 Analytics Dashboard
               </label>
               <div className="flex gap-2">
@@ -134,7 +153,7 @@ export default function UrlShortenerForm() {
                   type="text"
                   readOnly
                   value={result.analyticsUrl}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-700 focus:outline-none"
                   aria-label="Analytics URL"
                 />
                 <Button
@@ -148,8 +167,7 @@ export default function UrlShortenerForm() {
             </div>
 
             <Alert type="info" className="text-sm">
-              <strong>Analytics Token:</strong> Save your analytics URL to track clicks on your
-              short link. You&apos;ll need it to view statistics later.
+              <strong>💡 Tip:</strong> Save your analytics URL to track clicks and view detailed statistics for your short link.
             </Alert>
           </div>
         </Card>
