@@ -1,0 +1,434 @@
+openapi: 3.1.0
+info:
+  title: URL Shortener API
+  description: API for creating short URLs and retrieving analytics
+  version: 1.0.0
+  contact:
+    name: URL Shortener Team
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://url-shortener.pages.dev
+    description: Production (Cloudflare Pages)
+
+tags:
+  - name: URLs
+    description: URL shortening operations
+  - name: Analytics
+    description: Analytics and statistics
+  - name: Health
+    description: Health check endpoints
+
+paths:
+  /api/shorten:
+    post:
+      tags:
+        - URLs
+      summary: Create a short URL
+      description: Creates a new short URL from a long URL. Returns the short URL and an analytics token.
+      operationId: createShortUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: The long URL to shorten
+                  example: "https://example.com/very/long/url/with/many/parameters"
+                  minLength: 10
+                  maxLength: 2048
+            examples:
+              validUrl:
+                summary: Valid URL
+                value:
+                  url: "https://example.com/long/path"
+              withQuery:
+                summary: URL with query parameters
+                value:
+                  url: "https://example.com/search?q=test&page=1"
+      responses:
+        '201':
+          description: Short URL created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortUrlResponse'
+              examples:
+                success:
+                  summary: Successful creation
+                  value:
+                    shortUrl: "https://short.url/abc123"
+                    slug: "abc123"
+                    originalUrl: "https://example.com/long/path"
+                    analyticsToken: "k7Jx9pQm2wR5nY8tL3vB1zC6fH4sD0gA"
+                    analyticsUrl: "https://short.url/analytics/k7Jx9pQm2wR5nY8tL3vB1zC6fH4sD0gA"
+                    createdAt: "2026-02-12T10:30:00.000Z"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidUrl:
+                  summary: Invalid URL format
+                  value:
+                    error: "Invalid URL format"
+                    message: "The provided URL is not a valid HTTP/HTTPS URL"
+                maliciousUrl:
+                  summary: Malicious URL detected
+                  value:
+                    error: "Malicious URL detected"
+                    message: "This URL has been identified as potentially harmful and cannot be shortened"
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Rate limit exceeded"
+                message: "Too many requests. Please try again later."
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /{slug}:
+    get:
+      tags:
+        - URLs
+      summary: Redirect to original URL
+      description: Redirects to the original URL and records a click event for analytics
+      operationId: redirectToUrl
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          description: The short URL slug
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9]{6,8}$'
+            example: "abc123"
+      responses:
+        '302':
+          description: Redirect to original URL
+          headers:
+            Location:
+              description: The original long URL
+              schema:
+                type: string
+                format: uri
+        '404':
+          description: Short URL not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not found"
+                message: "Short URL not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/analytics/{token}:
+    get:
+      tags:
+        - Analytics
+      summary: Get analytics for a short URL
+      description: Retrieves analytics data for a short URL using the analytics token
+      operationId: getAnalytics
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: The analytics token received when creating the short URL
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9]{32}$'
+            example: "k7Jx9pQm2wR5nY8tL3vB1zC6fH4sD0gA"
+        - name: period
+          in: query
+          description: Time period for analytics aggregation
+          schema:
+            type: string
+            enum: [hour, day, week]
+            default: day
+        - name: startDate
+          in: query
+          description: Start date for analytics range (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+            example: "2026-02-01T00:00:00Z"
+        - name: endDate
+          in: query
+          description: End date for analytics range (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+            example: "2026-02-12T23:59:59Z"
+      responses:
+        '200':
+          description: Analytics data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsResponse'
+              examples:
+                dailyAnalytics:
+                  summary: Daily analytics
+                  value:
+                    slug: "abc123"
+                    originalUrl: "https://example.com/long/path"
+                    createdAt: "2026-02-12T10:30:00.000Z"
+                    totalClicks: 127
+                    clicksByPeriod:
+                      - period: "2026-02-12"
+                        clicks: 82
+                      - period: "2026-02-11"
+                        clicks: 45
+                    clicksByDevice:
+                      mobile: 78
+                      desktop: 45
+                      tablet: 4
+                    clicksByReferrer:
+                      "twitter.com": 52
+                      "facebook.com": 31
+                      "direct": 44
+                    topReferrers:
+                      - source: "twitter.com"
+                        clicks: 52
+                      - source: "facebook.com"
+                        clicks: 31
+                      - source: "direct"
+                        clicks: 44
+        '401':
+          description: Unauthorized - invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Unauthorized"
+                message: "Invalid or missing analytics token"
+        '404':
+          description: Analytics not found for token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not found"
+                message: "No analytics found for the provided token"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns the health status of the API
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-02-12T10:30:00.000Z"
+                  version:
+                    type: string
+                    example: "1.0.0"
+        '500':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ShortUrlResponse:
+      type: object
+      required:
+        - shortUrl
+        - slug
+        - originalUrl
+        - analyticsToken
+        - analyticsUrl
+        - createdAt
+      properties:
+        shortUrl:
+          type: string
+          format: uri
+          description: The complete short URL
+          example: "https://short.url/abc123"
+        slug:
+          type: string
+          pattern: '^[A-Za-z0-9]{6,8}$'
+          description: The short URL slug
+          example: "abc123"
+        originalUrl:
+          type: string
+          format: uri
+          description: The original long URL
+          example: "https://example.com/long/path"
+        analyticsToken:
+          type: string
+          pattern: '^[A-Za-z0-9]{32}$'
+          description: Secret token for accessing analytics
+          example: "k7Jx9pQm2wR5nY8tL3vB1zC6fH4sD0gA"
+        analyticsUrl:
+          type: string
+          format: uri
+          description: URL to view analytics dashboard
+          example: "https://short.url/analytics/k7Jx9pQm2wR5nY8tL3vB1zC6fH4sD0gA"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the short URL was created (UTC)
+          example: "2026-02-12T10:30:00.000Z"
+
+    AnalyticsResponse:
+      type: object
+      required:
+        - slug
+        - originalUrl
+        - createdAt
+        - totalClicks
+        - clicksByPeriod
+        - clicksByDevice
+        - clicksByReferrer
+        - topReferrers
+      properties:
+        slug:
+          type: string
+          description: The short URL slug
+          example: "abc123"
+        originalUrl:
+          type: string
+          format: uri
+          description: The original long URL
+          example: "https://example.com/long/path"
+        createdAt:
+          type: string
+          format: date-time
+          description: When the short URL was created
+          example: "2026-02-12T10:30:00.000Z"
+        totalClicks:
+          type: integer
+          minimum: 0
+          description: Total number of clicks
+          example: 127
+        clicksByPeriod:
+          type: array
+          description: Click counts grouped by time period
+          items:
+            type: object
+            properties:
+              period:
+                type: string
+                description: Time period identifier (date or datetime)
+                example: "2026-02-12"
+              clicks:
+                type: integer
+                minimum: 0
+                example: 82
+        clicksByDevice:
+          type: object
+          description: Click counts by device type
+          properties:
+            mobile:
+              type: integer
+              minimum: 0
+              example: 78
+            desktop:
+              type: integer
+              minimum: 0
+              example: 45
+            tablet:
+              type: integer
+              minimum: 0
+              example: 4
+            unknown:
+              type: integer
+              minimum: 0
+              example: 0
+        clicksByReferrer:
+          type: object
+          description: Click counts by referrer source
+          additionalProperties:
+            type: integer
+            minimum: 0
+          example:
+            "twitter.com": 52
+            "facebook.com": 31
+            "direct": 44
+        topReferrers:
+          type: array
+          description: Top referrer sources ranked by clicks
+          items:
+            type: object
+            properties:
+              source:
+                type: string
+                example: "twitter.com"
+              clicks:
+                type: integer
+                minimum: 0
+                example: 52
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code or type
+          example: "Invalid URL format"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "The provided URL is not a valid HTTP/HTTPS URL"
+        details:
+          type: object
+          description: Additional error details (optional)
+          additionalProperties: true
+
+  securitySchemes:
+    AnalyticsToken:
+      type: apiKey
+      in: path
+      name: token
+      description: Analytics token required to access analytics data
+
+security: []

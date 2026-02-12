@@ -1,8 +1,8 @@
 # Feature Specification: URL Shortener with Analytics
 
-**Feature Branch**: `001-url-shortener`  
-**Created**: 2026-02-12  
-**Status**: Draft  
+**Feature Branch**: `001-url-shortener`
+**Created**: 2026-02-12
+**Status**: Draft
 **Input**: User description: "Build a URL shortening service with click analytics. Users create short URLs, the system tracks clicks, source, device (simplified). Has a dashboard with daily/weekly statistics, top links."
 
 ## Clarifications
