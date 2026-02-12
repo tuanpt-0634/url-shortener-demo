@@ -55,7 +55,7 @@ describe('Slug Generator', () => {
     it('should generate cryptographically random slugs', () => {
       // Generate multiple slugs and check distribution
       const slugs = Array.from({ length: 1000 }, () => generateSlug(6));
-      
+
       // Check that we have good variety in first character
       const firstChars = new Set(slugs.map(s => s[0]));
       expect(firstChars.size).toBeGreaterThan(30); // Should use at least half of base62 chars

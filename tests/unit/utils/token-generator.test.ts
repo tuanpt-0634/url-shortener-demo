@@ -40,11 +40,11 @@ describe('Token Generator', () => {
     it('should generate cryptographically random tokens', () => {
       // Generate multiple tokens and check distribution
       const tokens = Array.from({ length: 1000 }, () => generateAnalyticsToken());
-      
+
       // Check that we have good variety in first character
       const firstChars = new Set(tokens.map(t => t[0]));
       expect(firstChars.size).toBeGreaterThan(30); // Should use at least half of base62 chars
-      
+
       // Check variety in last character too
       const lastChars = new Set(tokens.map(t => t[t.length - 1]));
       expect(lastChars.size).toBeGreaterThan(30);
@@ -54,15 +54,15 @@ describe('Token Generator', () => {
       // 32 chars of base62 = 190 bits of entropy (far exceeds 128-bit security standard)
       const token1 = generateAnalyticsToken();
       const token2 = generateAnalyticsToken();
-      
+
       expect(token1).not.toBe(token2);
-      
+
       // Count different characters between two tokens
       let differences = 0;
       for (let i = 0; i < 32; i++) {
         if (token1[i] !== token2[i]) differences++;
       }
-      
+
       // Should differ in most positions
       expect(differences).toBeGreaterThan(20);
     });
