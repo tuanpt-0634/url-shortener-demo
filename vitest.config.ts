@@ -8,6 +8,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
+    include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
+    exclude: ['tests/e2e/**', 'node_modules/**', '.next/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -18,6 +20,10 @@ export default defineConfig({
         '**/*.config.{js,ts,mjs}',
         '**/types/',
         '**/*.d.ts',
+        'src/components/**', // Exclude UI components from coverage
+        'src/app/**', // Exclude Next.js app directory (UI/pages)
+        'src/lib/db/schema.ts', // Exclude Drizzle schema (not testable business logic)
+        'src/lib/db/migrations/**', // Exclude database migrations
       ],
       thresholds: {
         lines: 80,

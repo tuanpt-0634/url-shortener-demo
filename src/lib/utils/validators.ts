@@ -10,7 +10,20 @@ export function isValidUrl(url: string): boolean {
 
   try {
     const urlObj = new URL(url);
-    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+    
+    // Check protocol
+    if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+      return false;
+    }
+    
+    // Check hostname exists and is not just dots, empty, or invalid characters
+    const hostname = urlObj.hostname;
+    if (!hostname || hostname === '.' || hostname === '..' || 
+        /^\.+$/.test(hostname) || /^[?#]/.test(hostname)) {
+      return false;
+    }
+    
+    return true;
   } catch {
     return false;
   }
