@@ -19,14 +19,14 @@ export const options = {
 
 export default function () {
   const baseUrl = __ENV.BASE_URL || 'http://localhost:3000';
-  
+
   // Example: Test homepage
   const res = http.get(`${baseUrl}/`);
-  
+
   check(res, {
     'status is 200': (r) => r.status === 200,
     'response time < 200ms': (r) => r.timings.duration < 200,
   });
-  
+
   sleep(1);
 }
