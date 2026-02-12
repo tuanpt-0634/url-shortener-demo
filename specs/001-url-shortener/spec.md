@@ -103,35 +103,34 @@ Users can access a dashboard that visualizes click statistics for their short UR
 - **FR-011**: System MUST extract and store referrer information from HTTP headers
 - **FR-012**: System MUST identify device type (mobile, desktop, tablet) from User-Agent
 - **FR-013**: System MUST process analytics asynchronously without blocking redirects
-- **FR-014**: System MUST handle high-volume click tracking (1000+ clicks/second per URL)
+- **FR-014**: System MUST handle high-volume click tracking (1000+ clicks/second per URL); verified via K6 load testing
 
 **Dashboard & Reporting**
 
 - **FR-015**: System MUST generate a unique analytics token for each short URL at creation time
-- **FR-016**: Users MUST provide a valid analytics token to access dashboard for a short URL
+- **FR-016**: Dashboard MUST require valid analytics token for access; reject invalid or missing tokens with unauthorized error (combines authentication and authorization)
 - **FR-017**: Dashboard MUST display total click counts for the short URL associated with the provided token
 - **FR-018**: Users MUST be able to filter analytics by date range (daily, weekly) when viewing with valid token
 - **FR-019**: Dashboard MUST show click breakdown by referrer source for token-authorized URLs
 - **FR-020**: Dashboard MUST show click breakdown by device type for token-authorized URLs
 - **FR-021**: Dashboard MUST update statistics in near-real-time (within 1 minute of clicks)
-- **FR-022**: System MUST reject analytics access attempts with invalid or missing tokens
-- **FR-023**: Dashboard MUST display timestamps in user's local timezone (client-side conversion from UTC)
+- **FR-022**: Dashboard MUST display timestamps in user's local timezone (client-side conversion from UTC)
 
 **Data Integrity & Security**
 
-- **FR-024**: System MUST validate URLs to prevent XSS attacks and malicious content
-- **FR-025**: System MUST check URLs against public blocklist API (e.g., Google Safe Browsing API) to prevent creation of short URLs for known phishing or malware domains
-- **FR-026**: System MUST handle URL encoding/decoding correctly
-- **FR-027**: System MUST log all URL creation and access events for audit purposes
-- **FR-028**: Analytics tokens MUST be cryptographically random and infeasible to guess
+- **FR-023**: System MUST validate URLs to prevent XSS attacks and malicious content
+- **FR-024**: System MUST check URLs against public blocklist API (e.g., Google Safe Browsing API) to prevent creation of short URLs for known phishing or malware domains
+- **FR-025**: System MUST handle URL encoding/decoding correctly
+- **FR-026**: System MUST log all URL creation and access events for audit purposes
+- **FR-027**: Analytics tokens MUST be cryptographically random and infeasible to guess
 
 **Error Handling & User Feedback**
 
-- **FR-029**: System MUST provide clear error messages for invalid URLs
-- **FR-030**: System MUST handle gracefully when original URL becomes unavailable (404)
-- **FR-031**: System MUST return appropriate HTTP status codes for all operations
-- **FR-032**: System MUST display user-friendly messages for all error conditions
-- **FR-033**: System MUST provide clear error message when analytics access is attempted with invalid token
+- **FR-028**: System MUST provide clear error messages for invalid URLs
+- **FR-029**: System MUST handle gracefully when original URL becomes unavailable (404)
+- **FR-030**: System MUST return appropriate HTTP status codes for all operations
+- **FR-031**: System MUST display user-friendly messages for all error conditions
+- **FR-032**: System MUST provide clear error message when analytics access is attempted with invalid token
 
 ### Key Entities
 
