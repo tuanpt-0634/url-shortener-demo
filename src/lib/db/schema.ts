@@ -27,6 +27,8 @@ export const clickEvents = sqliteTable(
     referrer: text('referrer'),
     userAgent: text('user_agent'),
     deviceType: text('device_type'),
+    browser: text('browser'),
+    os: text('os'),
     ipAddress: text('ip_address'),
   },
   (table) => ({

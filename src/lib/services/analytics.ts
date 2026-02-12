@@ -13,6 +13,8 @@ export interface RecordClickParams {
   referrer: string | null;
   userAgent: string | null;
   deviceType: DeviceType;
+  browser?: string;
+  os?: string;
   ipAddress?: string | null;
 }
 
@@ -27,7 +29,7 @@ export class AnalyticsService {
     params: RecordClickParams,
     db: BetterSQLite3Database
   ): Promise<ClickEvent> {
-    const { shortUrlId, referrer, userAgent, deviceType, ipAddress = null } = params;
+    const { shortUrlId, referrer, userAgent, deviceType, browser, os, ipAddress = null } = params;
 
     // Generate UTC timestamp in ISO 8601 format
     const timestamp = new Date().toISOString();
@@ -41,6 +43,8 @@ export class AnalyticsService {
           referrer,
           userAgent,
           deviceType,
+          browser: browser || null,
+          os: os || null,
           ipAddress,
         })
         .returning();
@@ -182,6 +186,66 @@ export class AnalyticsService {
     } catch (error) {
       console.error('Failed to get referrer breakdown:', error);
       throw new Error('Failed to get referrer breakdown');
+    }
+  }
+
+  /**
+   * Aggregates click events by browser
+   * @param shortUrlId - Short URL ID
+   * @param db - Database instance
+   * @returns Browser breakdown
+   */
+  static async getBrowserBreakdown(
+    shortUrlId: number,
+    db: BetterSQLite3Database
+  ): Promise<Record<string, number>> {
+    try {
+      const clicks = await db
+        .select()
+        .from(clickEvents)
+        .where(eq(clickEvents.shortUrlId, shortUrlId));
+
+      // Aggregate by browser
+      const breakdown: Record<string, number> = {};
+      clicks.forEach((click) => {
+        const browser = click.browser || 'Unknown';
+        breakdown[browser] = (breakdown[browser] || 0) + 1;
+      });
+
+      return breakdown;
+    } catch (error) {
+      console.error('Failed to get browser breakdown:', error);
+      throw new Error('Failed to get browser breakdown');
+    }
+  }
+
+  /**
+   * Aggregates click events by operating system
+   * @param shortUrlId - Short URL ID
+   * @param db - Database instance
+   * @returns OS breakdown
+   */
+  static async getOSBreakdown(
+    shortUrlId: number,
+    db: BetterSQLite3Database
+  ): Promise<Record<string, number>> {
+    try {
+      const clicks = await db
+        .select()
+        .from(clickEvents)
+        .where(eq(clickEvents.shortUrlId, shortUrlId));
+
+      // Aggregate by OS
+      const breakdown: Record<string, number> = {};
+      clicks.forEach((click) => {
+        const os = click.os || 'Unknown';
+        breakdown[os] = (breakdown[os] || 0) + 1;
+      });
+
+      return breakdown;
+    } catch (error) {
+      console.error('Failed to get OS breakdown:', error);
+      throw new Error('Failed to get OS breakdown');
     }
   }
 
