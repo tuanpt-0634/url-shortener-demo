@@ -17,11 +17,17 @@ database_name = "url-shortener-db"
 database_id = "5a5ad0db-b633-4ae5-befa-12ad0c0b43ab"
 migrations_dir = "src/lib/db/migrations"
 
+# Scheduled cron triggers for analytics pre-aggregation
+#[triggers]
+#crons = ["0 0 * * *"]  # Run daily at midnight UTC
+
 # Environment variables
 [vars]
 NODE_ENV = "production"
-BASE_URL = "https://url-shortener-demo.workers.dev"
-CORS_ORIGIN = "https://url-shortener-demo.workers.dev"
+RUNTIME_PLATFORM = "cloudflare"
+BASE_URL = "https://url-shortener-demo.pham-thanh-tuan.workers.dev"
+NEXT_PUBLIC_BASE_URL = "https://url-shortener-demo.pham-thanh-tuan.workers.dev"
+CORS_ORIGIN = "https://url-shortener-demo.pham-thanh-tuan.workers.dev"
 MAX_REQUESTS_PER_WINDOW = "60"
 
 # Development configuration

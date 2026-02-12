@@ -25,11 +25,19 @@ export async function getLocalDb() {
 
 // Helper to get the appropriate database instance
 export async function getDb() {
-  if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production') {
-    return getLocalDb();
+  // In Cloudflare Workers/production, use getCloudflareContext
+  if (typeof process !== 'undefined' && process.env.RUNTIME_PLATFORM === 'cloudflare') {
+    try {
+      const { getCloudflareContext } = await import('@opennextjs/cloudflare');
+      const { env } = getCloudflareContext();
+      return getCloudflareDb(env.DB);
+    } catch (error) {
+      throw new Error(
+        'Failed to access Cloudflare D1 binding. Make sure you are running in Cloudflare Workers context.'
+      );
+    }
   }
 
-  throw new Error(
-    'Database not available. Use getCloudflareDb(env.DB) in Cloudflare Workers context.'
-  );
+  // Local development
+  return getLocalDb();
 }

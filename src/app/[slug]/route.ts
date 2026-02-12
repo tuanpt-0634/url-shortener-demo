@@ -13,6 +13,13 @@ export async function GET(
 ) {
   const { slug } = await params;
 
+  // Skip reserved paths (these should be handled by other routes)
+  const reservedPaths = ['analytics', 'api', 'admin', 'dashboard', '_next', 'public'];
+  if (reservedPaths.includes(slug.toLowerCase())) {
+    // Return null to let Next.js continue to other route handlers
+    return new NextResponse(null, { status: 404 });
+  }
+
   // Validate slug format
   if (!/^[A-Za-z0-9]{6,8}$/.test(slug)) {
     return NextResponse.json(
@@ -34,21 +41,15 @@ export async function GET(
     );
   }
 
-  logger.info('Redirecting to original URL', {
-    slug,
-    originalUrl: shortUrl.originalUrl.substring(0, 100),
-  });
-
   // Extract request metadata for analytics
   const referrer = request.headers.get('referer') || null;
   const userAgent = request.headers.get('user-agent') || null;
   const { deviceType, browser, os } = parseUserAgent(userAgent);
-  const ipAddress = request.headers.get('x-forwarded-for') ||
-                    request.headers.get('x-real-ip') || null;
+  const ipAddress =
+    request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null;
 
-  // Record analytics in background (fire-and-forget for performance)
-  // Don't await - let it run async to keep redirect fast
-  AnalyticsService.recordClick(
+  // Record analytics - use waitUntil in Cloudflare, await in local dev
+  const analyticsPromise = AnalyticsService.recordClick(
     {
       shortUrlId: shortUrl.id,
       referrer,
@@ -60,13 +61,22 @@ export async function GET(
     },
     db
   ).catch((error) => {
-    // Log but don't fail the redirect
     logger.error('Analytics tracking failed', error instanceof Error ? error : undefined, {
       slug,
       errorMessage: error instanceof Error ? error.message : 'Unknown error',
     });
   });
 
-  // Redirect immediately (HTTP 302 for temporary redirect)
+  if (process.env.RUNTIME_PLATFORM === 'cloudflare') {
+    // In Cloudflare Workers: use waitUntil for non-blocking background task
+    const { getCloudflareContext } = await import('@opennextjs/cloudflare');
+    const { ctx } = getCloudflareContext();
+    ctx.waitUntil(analyticsPromise);
+  } else {
+    // In local dev: await to ensure completion
+    await analyticsPromise;
+  }
+
+  // Redirect (HTTP 302 for temporary redirect)
   return NextResponse.redirect(shortUrl.originalUrl, 302);
 }

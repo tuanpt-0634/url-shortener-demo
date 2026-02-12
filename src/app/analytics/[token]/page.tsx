@@ -8,6 +8,8 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { AnalyticsDashboard } from '@/components/AnalyticsDashboard';
 import { Alert } from '@/components/ui/Alert';
+import { getDb } from '@/lib/db/client';
+import { AnalyticsService } from '@/lib/services/analytics';
 
 interface AnalyticsData {
   shortUrl: {
@@ -57,7 +59,7 @@ function DashboardSkeleton() {
   );
 }
 
-// Fetch analytics data
+// Fetch analytics data directly from database (server-side)
 async function getAnalyticsData(
   token: string,
   period: string = 'daily',
@@ -65,29 +67,58 @@ async function getAnalyticsData(
   endDate?: string
 ): Promise<AnalyticsData | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const params = new URLSearchParams({ period });
+    const db = await getDb();
 
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
+    // Fetch basic analytics data by token
+    const analyticsData = await AnalyticsService.getAnalyticsByToken(token, db);
 
-    const url = `${baseUrl}/api/analytics/${token}?${params.toString()}`;
-
-    const response = await fetch(url, {
-      cache: 'no-store', // Always fetch fresh data
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null;
-      }
-      throw new Error('Failed to fetch analytics');
+    if (!analyticsData) {
+      return null;
     }
 
-    return await response.json();
+    const { shortUrl, clicks } = analyticsData;
+
+    // Filter clicks by date range if provided
+    let filteredClicks = clicks;
+    if (startDate && endDate) {
+      const clicksInRange = await AnalyticsService.getClicksByDateRange(
+        shortUrl.id,
+        startDate,
+        endDate,
+        db
+      );
+      filteredClicks = clicksInRange;
+    }
+
+    // Get aggregated data
+    const deviceBreakdown = await AnalyticsService.getDeviceBreakdown(shortUrl.id, db);
+    const referrerBreakdown = await AnalyticsService.getReferrerBreakdown(shortUrl.id, db);
+    const browserBreakdown = await AnalyticsService.getBrowserBreakdown(shortUrl.id, db);
+    const osBreakdown = await AnalyticsService.getOSBreakdown(shortUrl.id, db);
+    const clicksByPeriod = await AnalyticsService.getClicksByPeriod(
+      shortUrl.id,
+      period as 'daily' | 'weekly',
+      db
+    );
+
+    // Return comprehensive analytics response
+    return {
+      shortUrl: {
+        slug: shortUrl.slug,
+        originalUrl: shortUrl.originalUrl,
+        createdAt: shortUrl.createdAt,
+      },
+      summary: {
+        totalClicks: filteredClicks.length,
+        period,
+        dateRange: startDate && endDate ? { startDate, endDate } : null,
+      },
+      timeSeries: clicksByPeriod,
+      deviceBreakdown,
+      referrerBreakdown,
+      browserBreakdown,
+      osBreakdown,
+    };
   } catch (error) {
     console.error('Error fetching analytics:', error);
     throw error;
